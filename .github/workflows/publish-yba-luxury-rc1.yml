@@ -1,0 +1,34 @@
+name: Publish YBA Luxury Android RC1
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-yba-luxury-rc1.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TAG: v1.0.0-rc.1
+      ARTIFACT_URL: "https://sdmntprcentralus.oaiusercontent.com/files/00000000-a76c-81f5-84d9-60c149fea182/raw?se=2026-10-29T17%3A11%3A51Z&sp=r&sv=2026-02-06&sr=b&scid=58b711f8-6f7a-4fe7-b269-e01c7103ceb5&skoid=697a5987-0cd9-4222-b5b8-500b90fa271b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-29T15%3A17%3A58Z&ske=2026-10-30T15%3A17%3A58Z&sks=b&skv=2026-02-06&sig=q4u8oDFJ4Tz3dAAybkEflk/j5B4u%2BI36hhaqH7185Lk%3D"
+      APK_NAME: YBA-Luxury-RC-1.0.0-f4e5e68.apk
+      APK_SHA256: ceb926231f16ebd82ab92f3af423dd17b26b13e28112544d09b200c6085a713c
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve approved private build artifact
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error "$ARTIFACT_URL" -o artifact.zip
+          mkdir -p dist
+          unzip -q artifact.zip -d dist
+          printf '%s  dist/%s\n' "$APK_SHA256" "$APK_NAME" | sha256sum -c -
+          cp release-assets/YBA-Luxury-RC-1.0.0-QR.png dist/
+      - name: Publish public technical prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG"             "dist/$APK_NAME"             "dist/YBA-Luxury-RC-1.0.0-QR.png"             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "YBA Luxury Android Demo 1.0.0 RC1"             --prerelease             --notes "Technical staging prerelease of Yacht Broker Assistant for controlled Android demonstration. Origin: private integration commit f4e5e68efe87a9c2ae7d1222950caf54e9dcb38d. Includes the approved luxury YB identity, six-language interface, demo CRM/inventory/TARGET data, BASIC and PRO screens, secure session code, and server-authorized entitlement handling. External AI providers, payments, automatic messaging and production deployment remain disabled. APK SHA-256: $APK_SHA256"
